@@ -2,7 +2,7 @@
 
 This is a service with a REST API that wraps the [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk) to issue, transfer and redeem tokens backed by a Hyperledger Fabric network for validation and settlement.
 
-Several instances of this service form a Layer 2 network that can transact amongst each other, with an (optional but currently configured to be required) auditor role who has to approve every transaction. The ledger data does not reveal balances, transaction amounts and identities of transaction parties. UTXO Tokens are owned by pseudonymous keys and other details are obscured with Zero Knowledge Proofs.
+Several instances of this service form a Layer 2 network that can transact amongst each other, with an optional auditor role who has to approve every transaction. The ledger data does not reveal balances, transaction amounts and identities of transaction parties. UTXO Tokens are owned by pseudonymous keys and other details are obscured with Zero Knowledge Proofs.
 
 This sample is intended to get familiar with the features of the Token SDK and as a starting point for a proof of concept. The sample contains a basic development setup with:
 
@@ -35,6 +35,7 @@ From now on we'll call the services for the issuer, auditor and owners 'nodes' (
     - [View the blockchain explorer](#view-the-blockchain-explorer)
   - [Development](#development)
     - [End to end tests](#end-to-end-tests)
+    - [Running the solution without auditor](#running-the-solution-without-auditor)
     - [Code structure](#code-structure)
     - [Add or change a REST API endpoint](#add-or-change-a-rest-api-endpoint)
     - [Upgrade the Token SDK and Fabric Smart Client versions](#upgrade-the-token-sdk-and-fabric-smart-client-versions)
@@ -288,6 +289,18 @@ See the `e2e` folder for some tests that exercise the APIs. The end to end tests
 ```bash
 go test ./e2e -count=1 -v
 ```
+
+### Running the solution without auditor
+
+The auditor is not required for a secure token exchange system. If your use case does not have a need for a role that sees and validates all transactions, you can have a simpler setup by leaving it out. To do so:
+
+```bash
+export DISABLE_AUDITOR=true
+```
+
+and comment out the auditor role in the docker-compose.yaml.
+
+This will generate the tokenchaincode configuration file without auditor, so that the tokenchaincode allows transactions without auditor signature. It also tells the code of the nodes (via that same environment variable) that they don't have to contact the auditor node when creating a transaction.
 
 ### Code structure
 

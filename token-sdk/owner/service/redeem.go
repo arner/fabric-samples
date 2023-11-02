@@ -66,13 +66,8 @@ type RedeemView struct {
 }
 
 func (v *RedeemView) Call(context view.Context) (interface{}, error) {
-	// specify the auditor and create the envelope for the transaction
-	logger.Debug("getting identity of auditor")
-	auditor := viewregistry.GetIdentityProvider(context).Identity("auditor")
-	if auditor == nil {
-		return "", errors.New("auditor identity not found")
-	}
-	tx, err := ttx.NewTransaction(context, nil, ttx.WithAuditor(auditor))
+	// Create transaction envelope
+	tx, err := NewTransaction(context)
 	if err != nil {
 		return "", errors.Wrap(err, "failed creating transaction")
 	}

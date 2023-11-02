@@ -7,6 +7,8 @@ SPDX-License-Identifier: Apache-2.0
 package service
 
 import (
+	"os"
+
 	"github.com/hyperledger-labs/fabric-smart-client/pkg/api"
 	viewregistry "github.com/hyperledger-labs/fabric-smart-client/platform/view"
 	"github.com/hyperledger-labs/fabric-smart-client/platform/view/services/flogging"
@@ -69,12 +71,18 @@ type IssueCashView struct {
 }
 
 func (v *IssueCashView) Call(context view.Context) (interface{}, error) {
+	// Get issuer wallet
+	logger.Debug("loading issuer wallet")
+	wallet := ttx.MyIssuerWallet(context)
+	if wallet == nil {
+		return "", errors.Errorf("issuer wallet not found")
+	}
+
 	// Is the wallet on our node?
 	// tms := token.GetManagementService(context)
 	// if w := tms.WalletManager().OwnerWalletByIdentity(view.Identity(v.Recipient)); w != nil {
 	// 	logger.Infof("%s", v.Recipient)
 	// }
-
 	node := view.Identity(v.RecipientNode)
 	rec := view.Identity(v.Recipient)
 	eps := viewregistry.GetEndpointService(context)
@@ -99,13 +107,8 @@ func (v *IssueCashView) Call(context view.Context) (interface{}, error) {
 		return "", errors.Wrapf(err, "failed getting recipient identity from %s", v.RecipientNode)
 	}
 
-	// Prepare the transaction and specify the auditor that will approve it.
-	logger.Debug("getting identity of auditor")
-	auditor := viewregistry.GetIdentityProvider(context).Identity("auditor")
-	if auditor == nil {
-		return "", errors.New("auditor identity not found")
-	}
-	tx, err := ttx.NewTransaction(context, nil, ttx.WithAuditor(auditor))
+	// Create the transaction envelope.
+	tx, err := NewTransaction(context)
 	if err != nil {
 		return "", errors.Wrap(err, "failed creating transaction")
 	}
@@ -115,13 +118,6 @@ func (v *IssueCashView) Call(context view.Context) (interface{}, error) {
 	// the user share messages that will be shown in the transaction history.
 	if v.Message != "" {
 		tx.SetApplicationMetadata("message", []byte(v.Message))
-	}
-
-	// Get issuer wallet
-	logger.Debug("loading issuer wallet")
-	wallet := ttx.MyIssuerWallet(context)
-	if wallet == nil {
-		return "", errors.Errorf("issuer wallet not found")
 	}
 
 	// The issuer adds a new issue operation to the transaction to issue
@@ -137,7 +133,7 @@ func (v *IssueCashView) Call(context view.Context) (interface{}, error) {
 	}
 
 	// The issuer is ready to collect all the required signatures.
-	// In this case, the issuer's and the auditor's signatures.
+	// In this case, the issuer's and the auditor's signatures as well as the Fabric peers.
 	// Invoke the Token Chaincode to collect endorsements on the Token Request and prepare the relative transaction.
 	// This is all done in one shot running the following view.
 	// Before completing, all recipients receive the approved transaction.
@@ -155,4 +151,18 @@ func (v *IssueCashView) Call(context view.Context) (interface{}, error) {
 		return "", errors.Wrap(err, "failed to order or commit transaction")
 	}
 	return tx.ID(), nil
+}
+
+// NewTransaction creates the envelope for the transaction and specify the auditor
+func NewTransaction(context view.Context) (*ttx.Transaction, error) {
+	if os.Getenv("DISABLE_AUDITOR") == "true" {
+		return ttx.NewTransaction(context, nil)
+	}
+
+	logger.Debug("getting identity of auditor")
+	auditor := viewregistry.GetIdentityProvider(context).Identity("auditor") // TODO: should not be hardcoded
+	if auditor == nil {
+		return nil, errors.New("auditor identity not found")
+	}
+	return ttx.NewTransaction(context, nil, ttx.WithAuditor(auditor))
 }

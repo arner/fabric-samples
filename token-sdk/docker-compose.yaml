@@ -9,6 +9,7 @@ networks:
     external: true
 
 services:
+  # Note: if you run the system without auditor (see readme), you can remove or comment out this service.
   auditor:
     hostname: auditor.example.com
     restart: always
@@ -25,11 +26,9 @@ services:
       - 9001
     networks:
       - test
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/api/v1/readyz"]
-      interval: "5s"
-      timeout: "1s"
-      retries: 20
+    depends_on:
+      issuer:
+        condition: service_healthy
 
   issuer:
     hostname: issuer.example.com
@@ -37,6 +36,8 @@ services:
     build:
       context: ./issuer
       dockerfile: ../Dockerfile
+    environment:
+      - DISABLE_AUDITOR=${DISABLE_AUDITOR}
     volumes:
       - ./data/issuer:/var/fsc/data/issuer
       - ./issuer/conf:/conf:ro
@@ -47,9 +48,11 @@ services:
       - 9101  
     networks:
       - test
-    depends_on:
-      auditor:
-        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/api/v1/readyz"]
+      interval: "5s"
+      timeout: "1s"
+      retries: 20
 
   owner1:
     hostname: owner1.example.com
@@ -57,6 +60,8 @@ services:
     build:
       context: ./owner
       dockerfile: ../Dockerfile
+    environment:
+      - DISABLE_AUDITOR=${DISABLE_AUDITOR}
     volumes:
       - ./data/owner1:/var/fsc/data/owner1
       - ./owner/conf/owner1:/conf:ro
@@ -68,7 +73,7 @@ services:
     networks:
       - test
     depends_on:
-      auditor:
+      issuer:
         condition: service_healthy
 
   owner2:
@@ -77,6 +82,8 @@ services:
     build:
       context: ./owner
       dockerfile: ../Dockerfile
+    environment:
+      - DISABLE_AUDITOR=${DISABLE_AUDITOR}
     volumes:
       - ./data/owner2:/var/fsc/data/owner2
       - ./owner/conf/owner2:/conf:ro
@@ -88,7 +95,7 @@ services:
     networks:
       - test
     depends_on:
-      auditor:
+      issuer:
         condition: service_healthy
 
   swagger-ui:

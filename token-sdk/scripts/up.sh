@@ -26,8 +26,11 @@ docker-compose -f compose-ca.yaml up -d
 while ! fabric-ca-client getcainfo -u localhost:27054 2>/dev/null; do echo "waiting for CA to start..." && sleep 1; done
 ./scripts/enroll-users.sh
 # generate the parameters needed for the tokenchaincode
-tokengen gen dlog --base 300 --exponent 5 --issuers keys/issuer/iss/msp --idemix keys/owner1/wallet/alice --auditors keys/auditor/aud/msp --output tokenchaincode
-
+if [ "${DISABLE_AUDITOR:=""}" = "true" ]; then 
+  tokengen gen dlog --base 300 --exponent 5 --issuers keys/issuer/iss/msp --idemix keys/owner1/wallet/alice --output tokenchaincode
+else
+  tokengen gen dlog --base 300 --exponent 5 --issuers keys/issuer/iss/msp --idemix keys/owner1/wallet/alice --auditors keys/auditor/aud/msp --output tokenchaincode
+fi
 
 # Start Fabric network
 bash "$TEST_NETWORK_HOME/network.sh" up createChannel

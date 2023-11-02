@@ -162,6 +162,10 @@ func getAuditorTransactions(t *testing.T, wallet string) []TransactionRecord {
 }
 
 func (o *ownerAPI) testIfAuditorMatchesOwnerHistory(t *testing.T, accounts []string) {
+	if os.Getenv("DISABLE_AUDITOR") == "true" {
+		t.Logf("skipping auditor history check")
+		return
+	}
 	for _, w := range accounts {
 		tx := o.getTransactions(t, w)
 		audittx := getAuditorTransactions(t, w)

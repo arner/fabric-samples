@@ -66,10 +66,22 @@ type TransferView struct {
 }
 
 func (v *TransferView) Call(context view.Context) (interface{}, error) {
-	// As a first step operation, the sender tries its own node or contacts the recipients
-	// FSC node to ask for the identity to use to assign ownership of the freshly created token.
+	// Create the envelope for the transaction
+	tx, err := NewTransaction(context)
+	if err != nil {
+		return "", errors.Wrap(err, "failed creating transaction")
+	}
+
+	// The sender will select tokens owned by this wallet
+	senderWallet := ttx.GetWallet(context, v.Wallet)
+	if senderWallet == nil {
+		return "", errors.Errorf("sender wallet [%s] not found", v.Wallet)
+	}
+
+	// Now the sender tries its own node or contacts the recipients
+	// FSC node to ask for the identity to use to assign ownership of
+	// the freshly created token.
 	var recipient view.Identity
-	var err error
 	w := ttx.GetWallet(context, v.Recipient)
 	if w != nil {
 		// Get recipient identity from own wallet
@@ -93,23 +105,6 @@ func (v *TransferView) Call(context view.Context) (interface{}, error) {
 		if err != nil {
 			return "", errors.Wrapf(err, "failed getting recipient identity from %s", v.RecipientNode)
 		}
-	}
-
-	// specify the auditor and create the envelope for the transaction
-	logger.Debug("getting identity of auditor")
-	auditor := viewregistry.GetIdentityProvider(context).Identity("auditor") // TODO: should not be hardcoded
-	if auditor == nil {
-		return "", errors.New("auditor identity not found")
-	}
-	tx, err := ttx.NewTransaction(context, nil, ttx.WithAuditor(auditor))
-	if err != nil {
-		return "", errors.Wrap(err, "failed creating transaction")
-	}
-
-	// The sender will select tokens owned by this wallet
-	senderWallet := ttx.GetWallet(context, v.Wallet)
-	if senderWallet == nil {
-		return "", errors.Errorf("sender wallet [%s] not found", v.Wallet)
 	}
 
 	// The sender adds a new transfer operation to the transaction following the instruction received.

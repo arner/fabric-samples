@@ -1,0 +1,27 @@
+#
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# TODO: create network with fabricx ansible roles
+- name: Create docker network
+  hosts: localhost
+  tasks:
+    - name: Create docker network
+      community.docker.docker_network:
+        name: "{{ create_network }}"
+        driver: "{{ container_network_driver | default('bridge') }}"
+        state: present
+      when: create_network is defined
+
+- name: Start Fabric-X Orderer
+  ansible.builtin.import_playbook: hyperledger.fabricx.orderer.start
+
+- name: Start Fabric-X Committer
+  ansible.builtin.import_playbook: hyperledger.fabricx.committer.start
+
+- name: Start Monitoring
+  ansible.builtin.import_playbook: hyperledger.fabricx.monitoring.start
+
+- name: Start Loadgen
+  ansible.builtin.import_playbook: hyperledger.fabricx.loadgen.start

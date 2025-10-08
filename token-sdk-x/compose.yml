@@ -1,0 +1,108 @@
+services:
+  issuer:
+    hostname: issuer.example.com
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_TYPE: issuer
+        PLATFORM: "${PLATFORM:-fabricx}"
+    volumes:
+      - ./${CONF_ROOT:-conf}/issuer:/conf
+    expose:
+      - 9101:9001
+    ports:
+      - 9100:9000/tcp
+    networks:
+      - test
+
+  endorser1:
+    hostname: endorser1.example.com
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_TYPE: endorser
+        PLATFORM: "${PLATFORM:-fabricx}"
+    volumes:
+      - ./${CONF_ROOT:-conf}/endorser1:/conf
+      - ./${CONF_ROOT:-conf}/namespace/zkatdlognoghv1_pp.json:/namespace/zkatdlognoghv1_pp.json
+    expose:
+      - 9301:9001
+    ports:
+      - 9300:9000/tcp
+    networks:
+      - test
+
+  endorser2:
+    hostname: endorser1.example.com
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_TYPE: endorser
+        PLATFORM: "${PLATFORM:-fabricx}"
+    volumes:
+      - ./${CONF_ROOT:-conf}/endorser2:/conf
+    expose:
+      - 9401:9001
+    ports:
+      - 9400:9000/tcp
+    networks:
+      - test
+
+  owner1:
+    hostname: owner1.example.com
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_TYPE: owner
+        PLATFORM: "${PLATFORM:-fabricx}"
+    volumes:
+      - ./${CONF_ROOT:-conf}/owner1:/conf
+    expose:
+      - 9501:9001
+    ports:
+      - 9500:9000/tcp
+    networks:
+      - test
+
+  owner2:
+    hostname: owner2.example.com
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_TYPE: owner
+        PLATFORM: "${PLATFORM:-fabricx}"
+    volumes:
+      - ./${CONF_ROOT:-conf}/owner2:/conf
+    expose:
+      - 9601:9001
+    ports:
+      - 9600:9000/tcp
+    networks:
+      - test
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - URL=/swagger.yaml
+    volumes:
+      - ./swagger.yaml:/usr/share/nginx/html/swagger.yaml
+
+# fabric_test is the name of the fabric-samples test network.
+# By connecting to it, we can reach the peers at their DNS names
+# (e.g. peer0.org1.example.com).
+networks:
+  test:
+    name: fabric_test
+    external: true

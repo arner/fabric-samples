@@ -34,16 +34,18 @@ clean-fabric:
 .PHONY: start-fabric
 start-fabric:
 	ansible-playbook "$(PLAYBOOK_PATH)/60-start.yaml"
+	docker network create fabric_test
 
 # Create a namespace in Fabric-x for the tokens.
 .PHONY: create-namespace
 create-namespace:
-	go tool fxconfig namespace create token_namespace --channel=arma --orderer=localhost:7050 --mspID=Org1MSP  --mspConfigPath=conf/endorser1/keys/fabric/admin --pk=conf/endorser1/keys/fabric/endorser/signcerts/endorser@org1.example.com-cert.pem
+	@echo "install namespace:"
+	go tool fxconfig namespace create token_namespace --channel=arma --orderer=localhost:7050 --mspID=Org1MSP  --mspConfigPath=conf/endorser1/keys/fabric/admin --pk=conf/endorser1/keys/fabric/endorser/signcerts/endorser@org1.example.com-cert.pem 2> /dev/null
 	@until go tool fxconfig namespace list --endpoint=localhost:5500 | grep -q token_namespace; do \
 		sleep 2; \
 		echo "waiting for namespace to be created..."; \
 	done
-	@ echo "done"
+	go tool fxconfig namespace list --endpoint=localhost:5500
 
 # Stop the targeted hosts (e.g. make fabric-x stop).
 .PHONY: stop-fabric
@@ -54,6 +56,7 @@ stop-fabric:
 .PHONY: teardown-fabric
 teardown-fabric:
 	ansible-playbook "$(PLAYBOOK_PATH)/80-teardown.yaml"
+	docker network rm fabric_test
 
 # Restart the targeted hosts (e.g. make fabric-x restart).
 .PHONY: restart-fabric

@@ -8,7 +8,12 @@ setup-app:
 # Start application
 .PHONY: start-app
 start-app:
+ifeq ($(PLATFORM),fabricx)
 	PLATFORM=$(PLATFORM) docker-compose up -d
+else
+	PLATFORM=$(PLATFORM) docker-compose -f compose.yml -f compose-endorser2.yml up -d
+endif
+
 
 # Restart application
 .PHONY: restart-app

@@ -68,10 +68,10 @@ fabric:
     tls:
       enabled: false
     peers:
-      - address: localhost:5400
+      - address: committer-sidecar:5400
         usage: delivery
     queryService:
-      - address: localhost:5500
+      - address: committer-queryservice:5500
     channels:
       - name: arma
         default: true

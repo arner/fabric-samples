@@ -1,85 +1,122 @@
-# Token SDK Sample API
+# Token SDK Sample
 
-This is a service with a REST API that wraps the [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk) to issue, transfer and redeem tokens backed by a Hyperledger Fabric network for validation and settlement.
+The **Token SDK Sample** demonstrates how to:
 
-Several instances of this service form a Layer 2 network that can transact amongst each other. The ledger data does not reveal balances, transaction amounts and identities of transaction parties. UTXO Tokens are owned by pseudonymous keys and other details are obscured with Zero Knowledge Proofs.
+- Build a simple token-based application using the [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk).
+- Connect the application to both [Fabric-X](https://github.com/hyperledger/fabric-x) and classic [Fabric](https://github.com/hyperledger/fabric) networks.
+- Issue and transfer tokens via a REST API.
 
-Another important point is that the application follows the new Fabric-X programming model where transactions are endorsed by applications instead of peers running chaincode.
+## About the Sample
 
-This sample is intended to get familiar with the features of the Token SDK and as a starting point for a proof of concept. The sample contains a basic development setup with:
+This demo provides a set of services exposing REST APIs that integrate with the [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk)
+to issue, transfer, and redeem tokens backed by a **Hyperledger Fabric(x)** network for validation and settlement.
 
--   An issuer service
--   Two owner services, with wallets for Alice and Bob (on Owner 1), and Carlos and Dan (on Owner 2)
--   Two endorsers.
--   An offline Certificate Authority
--   Configuration to use a Fabric 3 test network.
--   Configuration to use a Fabric-X test network.
+Together, these services form a *Layer 2 network* capable of transacting privately among participants.
+The ledger data does not reveal balances, transaction amounts, or participant identities.
+Tokens are represented as UTXOs owned by pseudonymous keys, with details hidden through **Zero-Knowledge Proofs (ZKPs)**.
 
-From now on we'll call the services for the issuer, endorsers and owners 'nodes' (not to be confused with Hyperledger Fabric peer nodes). Each of them runs as a separate application containing a REST API, the Fabric Smart Client and the Token SDK. The nodes talk to each other via a protocol called libp2p to create token transactions, and each of them also has a Hyperledger Fabric user to be able to submit the transaction to the settlement layer. The settlement layer is just any Fabric or Fabric-X network. It has to be initialized with a `token_namespace` namespace and a committed transaction with the identities of the issuer, endorsers and CA to be able to validate transactions.
+The application follows the Fabric-X programming model, where business parties directly endorse transactions—rather than Fabric peers executing chaincode.
+Note that the [Token SDK](https://github.com/hyperledger-labs/fabric-token-sdk) builds on top of the [Fabric Smart Client](https://github.com/hyperledger-labs/fabric-smart-client) (FSC), a framework to build distributed applications for Fabric(x).
+
+This sample helps you get familiar with Token SDK features and serves as a starting point for your own proof of concept.
+
+**Components**
+
+**Application services**
+- **Issuer service** - creates (issues) tokens.
+- **Owner services** - host user wallets.
+- **Endorser service** - validates and approves token transactions.
+
+
+**Fabric(x) Blockchain Network**
+- An offline Certificate Authority (CA).
+- Configuration for a **Fabric-X** test network.
+- Configuration for a **Fabric v3** test network.
+
+## Architecture Overview
+
+From now on, we’ll refer to the issuer, endorser, and owner services collectively as nodes (not to be confused with Fabric peer nodes).
+
+Each node runs as a separate application with:
+
+- A REST API
+- The FSC node runtime
+- The Token SDK
+
+Nodes communicate via *websockets* to construct token transactions.
+Each node also acts as a Fabric user, submitting transactions to the settlement layer — any Fabric or Fabric-X network.
+
+A namespace (`token_namespace`) is deployed, along with a committed transaction containing the identities of the issuer, endorsers, and CA, enabling transaction validation.
 
 ## Prerequisites
 
-### Fabric-X prerequisites
+### Fabric-X Setup
 
-To set up a Fabric-X test network, we will use the [fabric-x ansible collection](https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection?tab=readme-ov-file#option-2-install-from-source).
-Please check the installation guidelines for more details. In short:
+We use the [Fabric-x Ansible Collection](https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection?tab=readme-ov-file#option-2-install-from-source) to set up the Fabric-X test network.
+Please check the installation guidelines for more details.
 
-To use the Ansible collection, you need to have the following prerequisites installed:
+#### Requirements
 
 - `python`;
 - [`ansible`](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) >= **2.16**;
 - [`podman`](https://podman.io/docs/installation) or [`docker`](https://docs.docker.com/engine/install/);
 - [`go`](https://go.dev/doc/install).
 
-Next, clone the repository (anywhere on your machine) and install the ansible collection.
+#### Installation
 
-```shell
+Clone the repository (anywhere on your machine) and install the ansible collection.
+
+```bash
 git clone https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection.git
 cd fabric-x-ansible-collection
 make install
 ```
 
-From the `token-sdk-x` directory, run:
+Back in the Token SDK Sample directory:
 
 ```shell
 make install-prerequisites
 python3 -m pip install -r ansible/requirements.txt
 ```
 
-If on mac, tell the Fabric-X components to connect each other via the host.docker.internal DNS instead of localhost.
+Note: Mac users:, Fabric-X components must communicate via host.docker.internal instead of localhost.
 
 ```shell
 export LOCAL_ANSIBLE_HOST="host.docker.internal"
 ```
 
-### Fabric 3 prerequisites
+### Fabric v3 Setup
 
-The code assumes you have the Fabric binaries in your path, and that the parent of the current folder is the fabric-samples repo. If this is not the case,
+To run on Fabric v3, we use [Fabric samples test network](../test-network) (`$(FABRIC_SAMPLES)/test-network/network.sh`).
 
-1. Download the samples and binaries:
-    ```shell
-    curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
-    ./install-fabric.sh --fabric-version 3.1.1 docker binary
-    export $PATH=$(pwd)/bin:$PATH
-    ```
-2. Either run this application from fabric-samples/token-sdk-x, or `export FABRIC_SAMPLES=/your/path/to/fabric-samples`. Optionally add it to your `~/.bashrc` or `~/.zshrc` file.
+Ensure Fabric binaries are in your `PATH` and Docker images are available. If not, install them as follows:
 
+```shell
+curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
+./install-fabric.sh --fabric-version 3.1.1 docker binary
+export $PATH=$(pwd)/bin:$PATH
+```
 
-## Get started
+## Getting Started
 
-The sample uses Fabric X as default network. If you want to run it against a sample Fabric 3 network, `export PLATFORM=fabric3` or run the commands like the following: `make setup PLATFORM=fabric`.
+The sample uses Fabric-X as the default network.
+If you want to run the application on Fabric v3, set the following environment variable
 
-### Generate crypto
+```bash
+export PLATFORM=fabric3
+```
 
-Create the configurations and crypto for the network.
+### Generate Crypto Material
+
+Create the configurations and crypto material for the network:
 
 ```shell
 make setup
 ```
 
-### Start the network
+### Start the Network and Application
 
-Start the Fabric network, create the namespace, and start the application.
+Start the Fabric network, create the namespace, and start the application services.
 
 ```shell
 make start-fabric
@@ -87,33 +124,36 @@ make create-namespace
 make start-app
 ```
 
-Or, in short:
+Or simply:
 
 ```shell
 make start
 ```
 
-### Use the application
+### Interacting with the Application
 
-The services are accessible on the following ports:
+All services run as Docker containers and expose REST APIs.
+They also communicate over P2P websockets as shown below:
 
-| api  | fsd  | service                  |
-| ---- | ---- | ------------------------ |
-| 8080 |      | API documentation (web)  |
-| 9100 | 9101 | issuer                   |
-| 9300 | 9301 | endorer 1                |
-| 9400 | 9401 | endorser 2               |
-| 9500 | 9501 | owner 1 (alice and bob)  |
-| 9600 | 9601 | owner 2 (carlos and dan) |
+| Rest API | P2P  | Service                     |
+|----------| ---- |-----------------------------|
+| 8080     |      | API documentation (web)     |
+| 9100     | 9101 | Issuer                      |
+| 9300     | 9301 | Endorer 1                   |
+| 9400     | 9401 | Endorser 2 (Fabric v3 only) |
+| 9500     | 9501 | Owner 1 (alice and bob)     |
+| 9600     | 9601 | Owner 2 (carlos and dan)    |
 
-Besides that, the nodes communicate with each other via 9101, 9301, 9401.
+We can use the Swagger API on [http://localhost:8080](http://localhost:8080) or call the API directly via `curl`.
 
-Now let's issue and transfer some tokens! View the API documentation and try some actions at [http://localhost:8080](http://localhost:8080). Or, directly from the commandline:
+Now let's issue and transfer some tokens!
 
-Initialize the token namespace (commit the parameters for the network) and issue a token:
+#### Example: Issue tokens
 
-```shell
-curl -X POST localhost:9300/endorser/init # only for Fabric-X
+We begin with initializing the token namespace (commit the parameters for the network) and issue `TOK` tokens to `alice`.
+
+```bash
+curl -X POST http://localhost:9300/endorser/init  # Fabric-X only
 
 curl http://localhost:9100/issuer/issue --json '{
     "amount": {"code": "TOK","value": 1000},
@@ -121,9 +161,15 @@ curl http://localhost:9100/issuer/issue --json '{
     "message": "hello world!"
 }'
 
-curl localhost:9500/owner/accounts/alice | jq
-curl localhost:9600/owner/accounts/dan | jq
+curl http://localhost:9500/owner/accounts/alice | jq
+curl http://localhost:9600/owner/accounts/dan | jq
+```
 
+#### Example: Transfer tokens
+
+Now `alice` transfers `100 TOK` to `dan`.
+
+```bash
 curl http://localhost:9500/owner/accounts/alice/transfer --json '{
     "amount": {"code": "TOK","value": 100},
     "counterparty": {"node": "owner2","account": "dan"},
@@ -134,33 +180,58 @@ curl -X GET http://localhost:9600/owner/accounts/dan/transactions | jq
 curl -X GET http://localhost:9500/owner/accounts/alice/transactions | jq
 ```
 
-Note that the application uses the UTXO model (like bitcoin). The issuer created a new TOK token of 1000 and assigned its ownership to alice. When alice transfered 100 TOK to dan, she used the token of 1000 as **input** for her transaction. As **output**, she creates two new tokens:
+#### UTXO Model
 
-1. one for 100 TOK with dan as the owner
-2. one with _herself_ as the owner for the remaining 900 TOK.
+Note that the application uses the UTXO model (like bitcoin).
+- The issuer creates a token of `1000 TOK` owned by `alice`.
+- When `alice` transfers `100 TOK` to `dan`, her `1000 TOK` token becomes the **input**.
+- Two **outputs** are created:
+  1) `100 TOK` owned by `dan`
+  2) `900 TOK` owned by `alice`
 
-This way, each transaction can have multiple inputs and multiple outputs. Their sum should always be the same, and every new transfer must be based on previously created outputs.
+Every transfer consumes existing outputs and creates new ones, ensuring balance consistency.
 
-#### Deep dive: what happens when doing a transfer?
+### Deep Dive: What Happens During a Transfer?
 
-It may look simple from the outside, but there's a lot going on to securely and privately transfer tokens. Let's take the example of alice (on the Owner 1 node) transfering 100 TOK to dan (on the Owner 2 node).
+Let’s examine how a private token transfer works between `alice` (Owner 1) and `dan` (Owner 2):
 
-1. **Create Transaction**: Alice requests an anonymous key from dan that will own the tokens. She then creates the transaction, with commitments that can be verified by anyone, but _only_ be opened (read) by dan and the auditor. The commitments contain the value, sender and recipient of each of the in- and output tokens.
-2. **Get Endorsements**: Alice (or more precisely the TransferView in the Owner 1 node) now submits the transaction to the auditor, who validates and stores it. The auditor _may_ enforce any specific business logic that is needed for this token in this ecosystem (for instance a transaction or holding limit).
+1. **Create Transaction:**
 
-   Alice then submits the transaction (which is now also signed by the auditor) to the Token Chaincode which is running on the Fabric peers. The chaincode verifies that all the proofs are valid and all the necessary signatures are there. Note that the peer and token chaincode cannot see what is transferred between who thanks to the zero knowledge proofs.
-3. **Commit Transaction**: Alice submits the endorsed Fabric transaction to the ordering service. Alice (Owner 1), dan (Owner 2) and the Auditor nodes have been listening for Fabric events involving this transaction. When receiving the 'commit' event, they change the status of the stored transaction to 'Confirmed'. The transaction is now final; dan owns the 100 TOK.
+    Alice requests an anonymous key from Dan, creates commitments that can be verified by anyone, but _only_ be opened (read) by Dan.
+    The commitments contain the value, sender and recipient of each of the in- and output tokens.
+
+2. **Get Endorsements:**
+
+    Alice submits the transaction to the endorser which validates the transaction using the token validation logic.
+    In detail, it verifies that all the proofs are valid and all the necessary signatures are there.
+    Note that the endorser cannot see the actual transfer details thanks to the zero knowledge proofs.
+
+3. **Commit Transaction:**
+
+    Alice submits the endorsed fabric(x) transaction to the ordering service.
+    Once committed, all involved nodes (Owner 1, Owner 2) receive events and update the transaction status to `Confirmed.`
+    The transaction is now final; Dan now officially owns the `100 TOK`.
 
 
 ![transfer](diagrams/transfer_transaction.png)
 
-## Alternative: debug mode or binaries
+### Teardown and cleanup
 
-### Run the service directly (instead of with docker-compose)
+Convenient Make targets are provided for shutting down, restarting, and cleaning the environment.
 
-For a faster development cycle, you may choose to run the services outside of docker. It requires some adjustments to your environment to make the paths and routes work.
+Run:
 
-Add the following to your `/etc/hosts`:
+```bash
+make help
+```
+
+for a list of available commands.
+
+## Debug mode
+
+For a faster development, you can run the services outside Docker.
+
+First, add the following to `/etc/hosts`:
 
 ```
 127.0.0.1 peer0.org1.example.com
@@ -171,26 +242,34 @@ Add the following to your `/etc/hosts`:
 127.0.0.1 endorser2.example.com
 127.0.0.1 owner1.example.com
 127.0.0.1 owner2.example.com
-127.0.0.1 auditor.example.com
 127.0.0.1 committer-sidecar
 127.0.0.1 committer-queryservice
 ```
 
-> The Token SDK discovers the peer addresses from the channel config (after connecting to a configured trusted peer).
+The application services discovers the peer addresses from the channel configuration after connecting to committer-queryservice (or a trusted peer in Fabric v3).
 
+Next, start the network as before:
 
-```shell
+```bash
 make start-fabric
 make create-namespace
 # don't make start-app
 ```
 
-In 3 different terminals:
+In separate terminals:
 
-```shell
+```bash
 cd conf/issuer && go run ../../issuer --port 9100
 cd conf/endorser1 && go run ../../endorser --port 9300
 cd conf/owner && go run ../../owner --port 9500
 ```
 
-If you use VSCode, you can also copy launch.example.json to .vscode/launch.json and run the application in debug mode.
+### VSCode
+
+If you use VSCode, copy:
+
+```bash
+cp launch.example.json .vscode/launch.json
+```
+
+Then run or debug the application services directly.

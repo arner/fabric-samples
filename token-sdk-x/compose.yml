@@ -1,7 +1,15 @@
+x-service-template: &service-template
+  restart: unless-stopped
+  extra_hosts:
+    - "committer-sidecar:host-gateway"
+    - "committer-queryservice:host-gateway"
+  networks:
+    - test
+
 services:
   issuer:
+    <<: *service-template
     hostname: issuer.example.com
-    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -14,12 +22,10 @@ services:
       - 9101:9001
     ports:
       - 9100:9000/tcp
-    networks:
-      - test
 
   endorser1:
+    <<: *service-template
     hostname: endorser1.example.com
-    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -33,30 +39,10 @@ services:
       - 9301:9001
     ports:
       - 9300:9000/tcp
-    networks:
-      - test
-
-  endorser2:
-    hostname: endorser1.example.com
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        NODE_TYPE: endorser
-        PLATFORM: "${PLATFORM:-fabricx}"
-    volumes:
-      - ./${CONF_ROOT:-conf}/endorser2:/conf
-    expose:
-      - 9401:9001
-    ports:
-      - 9400:9000/tcp
-    networks:
-      - test
 
   owner1:
+    <<: *service-template
     hostname: owner1.example.com
-    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -69,12 +55,10 @@ services:
       - 9501:9001
     ports:
       - 9500:9000/tcp
-    networks:
-      - test
 
   owner2:
+    <<: *service-template
     hostname: owner2.example.com
-    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -87,10 +71,9 @@ services:
       - 9601:9001
     ports:
       - 9600:9000/tcp
-    networks:
-      - test
 
   swagger-ui:
+    <<: *service-template
     image: swaggerapi/swagger-ui
     ports:
       - "8080:8080"

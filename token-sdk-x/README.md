@@ -21,12 +21,8 @@ From now on we'll call the services for the issuer, endorsers and owners 'nodes'
 
 ### Fabric-X prerequisites
 
-Clone the ansible scripts (anywhere on your machine):
-
-```shell
-git clone https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection.git
-cd fabric-x-ansible-collection
-```
+To set up a Fabric-X test network, we will use the [fabric-x ansible collection](https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection?tab=readme-ov-file#option-2-install-from-source).
+Please check the installation guidelines for more details. In short:
 
 To use the Ansible collection, you need to have the following prerequisites installed:
 
@@ -35,10 +31,17 @@ To use the Ansible collection, you need to have the following prerequisites inst
 - [`podman`](https://podman.io/docs/installation) or [`docker`](https://docs.docker.com/engine/install/);
 - [`go`](https://go.dev/doc/install).
 
-From the fabric-x-ansible-collection directory, run:
+Next, clone the repository (anywhere on your machine) and install the ansible collection.
 
 ```shell
+git clone https://github.com/LF-Decentralized-Trust-labs/fabric-x-ansible-collection.git
+cd fabric-x-ansible-collection
 make install
+```
+
+From the `token-sdk-x` directory, run:
+
+```shell
 make install-prerequisites
 python3 -m pip install -r ansible/requirements.txt
 ```
@@ -56,7 +59,8 @@ The code assumes you have the Fabric binaries in your path, and that the parent 
 1. Download the samples and binaries:
     ```shell
     curl -sSLO https://raw.githubusercontent.com/hyperledger/fabric/main/scripts/install-fabric.sh && chmod +x install-fabric.sh
-    ./install-fabric.sh docker binary
+    ./install-fabric.sh --fabric-version 3.1.1 docker binary
+    export $PATH=$(pwd)/bin:$PATH
     ```
 2. Either run this application from fabric-samples/token-sdk-x, or `export FABRIC_SAMPLES=/your/path/to/fabric-samples`. Optionally add it to your `~/.bashrc` or `~/.zshrc` file.
 
@@ -170,6 +174,8 @@ Add the following to your `/etc/hosts`:
 127.0.0.1 owner1.example.com
 127.0.0.1 owner2.example.com
 127.0.0.1 auditor.example.com
+127.0.0.1 committer-sidecar
+127.0.0.1 committer-queryservice
 ```
 
 > The Token SDK discovers the peer addresses from the channel config (after connecting to a configured trusted peer).
